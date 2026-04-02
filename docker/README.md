@@ -9,6 +9,14 @@ Before you begin, ensure that you have the following installed:
 - Docker
 - Docker Compose (if using the Docker Compose setup)
 
+## Local stack from this repository
+
+To build the app image from your checkout and run it with Postgres, Inbucket, and Redis (good for testing signing, email, and branding locally), see **[local/README.md](./local/README.md)** and run `npm run docker:local:up` from the repo root.
+
+## Single-container image (Postgres + app) for Dokploy / GitHub builds
+
+The same `docker/Dockerfile` exposes a final stage **`all-in-one`**: PostgreSQL runs inside the container (bound to `127.0.0.1` only) and then the Remix app starts. Build from your Git repo (e.g. Dokploy: Dockerfile path `docker/Dockerfile`, **Docker build stage** `all-in-one`, context `.`). Mount a persistent volume on **`/app/data`** so the database survives redeploys. Set **`POSTGRES_PASSWORD`** (use a URL-safe password, e.g. alphanumeric) and your usual `NEXTAUTH_SECRET`, encryption keys, `NEXT_PUBLIC_WEBAPP_URL`, SMTP, and signing cert env vars. You can omit **`NEXT_PRIVATE_DATABASE_URL`**; it defaults to the embedded database. Optional: `POSTGRES_USER`, `POSTGRES_DB`, `PORT`. Local test: `npm run docker:all-in-one:build` then `docker run -p 3000:3000 -v esign-data:/app/data -e POSTGRES_PASSWORD=yoursecret -e NEXTAUTH_SECRET=... esign:all-in-one` (add the rest of your env vars).
+
 ## Option 1: Production Docker Compose Setup
 
 This setup includes a PostgreSQL database and the Documenso application. You will need to provide your own SMTP details via environment variables.

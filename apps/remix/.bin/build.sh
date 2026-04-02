@@ -3,8 +3,9 @@
 # Exit on error.
 set -e
 
-SCRIPT_DIR="$(readlink -f "$(dirname "$0")")"
-WEB_APP_DIR="$SCRIPT_DIR/.."
+# Portable paths (Alpine/busybox; avoid readlink -f).
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WEB_APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Store the original directory
 ORIGINAL_DIR=$(pwd)

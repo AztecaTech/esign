@@ -133,3 +133,20 @@ COPY --chown=nodejs:nodejs ./docker/start.sh /app/apps/remix/start.sh
 WORKDIR /app/apps/remix
 
 CMD ["sh", "start.sh"]
+
+###########################
+# ALL-IN-ONE (Dokploy etc) #
+###########################
+# Build: docker build -f docker/Dockerfile --target all-in-one .
+# PostgreSQL + app in one container; persist volume on /app/data
+FROM runner AS all-in-one
+
+USER root
+
+RUN apk add --no-cache postgresql postgresql-contrib \
+  && rm -rf /var/cache/apk/*
+
+COPY docker/start-all-in-one.sh /start-all-in-one.sh
+RUN chmod +x /start-all-in-one.sh
+
+CMD ["/bin/sh", "/start-all-in-one.sh"]

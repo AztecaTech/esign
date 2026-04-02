@@ -2,11 +2,11 @@ import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
-import { NEXT_PUBLIC_WEBAPP_URL } from '@documenso/lib/constants/app';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
 import { extractRequestMetadata } from '@documenso/lib/universal/extract-request-metadata';
 
 import { setCsrfCookie } from './lib/session/session-cookies';
+import { getValidAuthOrigins } from './lib/utils/get-valid-auth-origins';
 import { accountRoute } from './routes/account';
 import { callbackRoute } from './routes/callback';
 import { emailPasswordRoute } from './routes/email-password';
@@ -22,10 +22,10 @@ export const auth = new Hono<HonoAuthContext>()
   .use(async (c, next) => {
     c.set('requestMetadata', extractRequestMetadata(c.req.raw));
 
-    const validOrigin = new URL(NEXT_PUBLIC_WEBAPP_URL()).origin;
+    const validOrigins = getValidAuthOrigins();
     const headerOrigin = c.req.header('Origin');
 
-    if (headerOrigin && headerOrigin !== validOrigin) {
+    if (headerOrigin && !validOrigins.includes(headerOrigin)) {
       return c.json(
         {
           message: 'Forbidden',

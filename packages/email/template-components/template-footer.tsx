@@ -12,17 +12,19 @@ export const TemplateFooter = ({ isDocument = true }: TemplateFooterProps) => {
 
   return (
     <Section>
-      {isDocument && !branding.brandingHidePoweredBy && (
-        <Text className="my-4 text-base text-slate-400">
-          <Trans>
-            This document was sent using{' '}
-            <Link className="text-[#7AC455]" href="https://documen.so/mail-footer">
-              Documenso
-            </Link>
-            .
-          </Trans>
-        </Text>
-      )}
+      {isDocument &&
+        !branding.brandingHidePoweredBy &&
+        !branding.brandingEnabled && (
+          <Text className="my-4 text-base text-slate-400">
+            <Trans>
+              This document was sent using{' '}
+              <Link className="text-[#7AC455]" href="https://documen.so/mail-footer">
+                Documenso
+              </Link>
+              .
+            </Trans>
+          </Text>
+        )}
 
       {branding.brandingEnabled && branding.brandingCompanyDetails && (
         <Text className="my-8 text-sm text-slate-400">

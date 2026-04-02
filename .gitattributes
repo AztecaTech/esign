@@ -1,0 +1,4 @@
+# Shell scripts run in Linux Docker; CRLF breaks shebang and control flow on Alpine.
+*.sh text eol=lf
+docker/start.sh text eol=lf
+docker/start-all-in-one.sh text eol=lf
