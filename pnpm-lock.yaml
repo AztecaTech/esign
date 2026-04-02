@@ -440,6 +440,9 @@ importers:
       '@babel/preset-typescript':
         specifier: ^7.28.5
         version: 7.28.5(@babel/core@7.29.0)
+      '@hono/vite-dev-server':
+        specifier: ^0.18.3
+        version: 0.18.3(hono@4.12.10)
       '@lingui/babel-plugin-lingui-macro':
         specifier: ^5.6.0
         version: 5.9.4(babel-plugin-macros@3.1.0)(typescript@5.6.2)

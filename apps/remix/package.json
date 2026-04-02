@@ -76,6 +76,7 @@
     "uqr": "^0.1.2"
   },
   "devDependencies": {
+    "@hono/vite-dev-server": "^0.18.3",
     "@babel/core": "^7.28.5",
     "@babel/preset-react": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
