@@ -1,4 +1,7 @@
-# Multi-service production stack: Postgres, Redis (for BullMQ jobs), and the Remix app.
+# Multi-service production stack:
+#   - database (Postgres)
+#   - redis (BullMQ; optional URL in .env)
+#   - application (Remix app — single app container)
 # From repo root: docker compose -f docker/production/compose.yml --env-file .env up -d --build
 # Build target `runner` only (not all-in-one). Use a managed DB by pointing DB URLs at your provider and removing the `database` service if needed.
 name: esign-production
@@ -29,7 +32,7 @@ services:
     volumes:
       - redis:/data
 
-  web:
+  application:
     build:
       context: ../..
       dockerfile: docker/Dockerfile
@@ -48,7 +51,7 @@ services:
       - NEXT_PRIVATE_GOOGLE_CLIENT_ID=${NEXT_PRIVATE_GOOGLE_CLIENT_ID}
       - NEXT_PRIVATE_GOOGLE_CLIENT_SECRET=${NEXT_PRIVATE_GOOGLE_CLIENT_SECRET}
       - NEXT_PUBLIC_WEBAPP_URL=${NEXT_PUBLIC_WEBAPP_URL:?err}
-      - NEXT_PRIVATE_INTERNAL_WEBAPP_URL=${NEXT_PRIVATE_INTERNAL_WEBAPP_URL:-http://web:3000}
+      - NEXT_PRIVATE_INTERNAL_WEBAPP_URL=${NEXT_PRIVATE_INTERNAL_WEBAPP_URL:-http://application:3000}
       - NEXT_PRIVATE_DATABASE_URL=${NEXT_PRIVATE_DATABASE_URL:?err}
       - NEXT_PRIVATE_DIRECT_DATABASE_URL=${NEXT_PRIVATE_DIRECT_DATABASE_URL:-${NEXT_PRIVATE_DATABASE_URL}}
       - NEXT_PRIVATE_REDIS_URL=${NEXT_PRIVATE_REDIS_URL:-redis://redis:6379}

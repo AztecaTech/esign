@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Multi-stage: pnpm + BuildKit cache mounts (store, Turbo, Prisma engines) for faster rebuilds.
-# Production: use docker/production/compose.yml (Postgres + optional Redis + web); do not use all-in-one for new deploys.
+# Production: use docker/production/compose.yml (Postgres + Redis + application); do not use all-in-one for new deploys.
 ###########################
 #     BASE CONTAINER      #
 ###########################

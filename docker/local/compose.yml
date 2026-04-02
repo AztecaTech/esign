@@ -1,11 +1,12 @@
-# Local full stack: Postgres, Inbucket (mail UI), Redis, and the Remix app built from this repo.
-# Usage: see docker/local/README.md
+# Default: 2 services — database + application (same split as production: data vs app).
+# Optional mail + Redis: docker compose -f docker/local/compose.yml -f docker/local/compose.devtools.yml --profile devtools up -d --build
+# Or: pnpm run docker:local:up:devtools
 name: esign-local
 
 services:
   database:
     image: postgres:15
-    container_name: esign-local-db
+    container_name: esign-local-database
     volumes:
       - esign_local_pg:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +21,38 @@ services:
     ports:
       - '54320:5432'
 
+  application:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    container_name: esign-local-application
+    depends_on:
+      database:
+        condition: service_healthy
+      inbucket:
+        condition: service_started
+        required: false
+      redis:
+        condition: service_started
+        required: false
+    env_file:
+      - ../../.env
+    environment:
+      NEXT_PRIVATE_DATABASE_URL: postgres://documenso:password@database:5432/documenso
+      NEXT_PRIVATE_DIRECT_DATABASE_URL: postgres://documenso:password@database:5432/documenso
+      NEXT_PRIVATE_INTERNAL_WEBAPP_URL: http://application:3000
+      NEXT_PUBLIC_WEBAPP_URL: http://localhost:3000
+      PORT: '3000'
+      # No Redis in the default 2-service stack; matches .env.example "local" jobs.
+      NEXT_PRIVATE_JOBS_PROVIDER: local
+      NEXT_PRIVATE_REDIS_URL: ''
+    ports:
+      - '3000:3000'
+    volumes:
+      - ../../apps/remix/example/cert.p12:/opt/documenso/cert.p12:ro
+
   inbucket:
+    profiles: [devtools]
     image: inbucket/inbucket
     container_name: esign-local-mail
     ports:
@@ -29,41 +61,13 @@ services:
       - '1100:1100'
 
   redis:
+    profiles: [devtools]
     image: redis:8-alpine
     container_name: esign-local-redis
     ports:
       - '63790:6379'
     volumes:
       - esign_local_redis:/data
-
-  web:
-    build:
-      context: ../..
-      dockerfile: docker/Dockerfile
-    container_name: esign-local-app
-    depends_on:
-      database:
-        condition: service_healthy
-      inbucket:
-        condition: service_started
-      redis:
-        condition: service_started
-    env_file:
-      - ../../.env
-    environment:
-      # Override host-only defaults from .env for in-network service names
-      NEXT_PRIVATE_DATABASE_URL: postgres://documenso:password@database:5432/documenso
-      NEXT_PRIVATE_DIRECT_DATABASE_URL: postgres://documenso:password@database:5432/documenso
-      NEXT_PRIVATE_SMTP_HOST: inbucket
-      NEXT_PRIVATE_SMTP_PORT: '2500'
-      NEXT_PRIVATE_REDIS_URL: redis://redis:6379
-      NEXT_PRIVATE_INTERNAL_WEBAPP_URL: http://web:3000
-      NEXT_PUBLIC_WEBAPP_URL: http://localhost:3000
-      PORT: '3000'
-    ports:
-      - '3000:3000'
-    volumes:
-      - ../../apps/remix/example/cert.p12:/opt/documenso/cert.p12:ro
 
 volumes:
   esign_local_pg:

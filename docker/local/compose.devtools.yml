@@ -1,0 +1,8 @@
+# Merge when using profile `devtools` (Inbucket + Redis). Wired SMTP + Redis hostnames for the app container.
+#   pnpm run docker:local:up:devtools
+services:
+  application:
+    environment:
+      NEXT_PRIVATE_REDIS_URL: redis://redis:6379
+      NEXT_PRIVATE_SMTP_HOST: inbucket
+      NEXT_PRIVATE_SMTP_PORT: '2500'

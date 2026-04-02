@@ -1,37 +1,56 @@
 # Local Docker stack (fork / esign)
 
-Runs **PostgreSQL**, **Inbucket** (catch-all SMTP + mail UI), **Redis**, and the **Remix app image built from your repo** (same `docker/Dockerfile` as upstream).
+## Default: two services
+
+`pnpm run docker:local:up` starts only:
+
+| Service        | Container name              | Role                          |
+| -------------- | --------------------------- | ----------------------------- |
+| `database`     | `esign-local-database`      | PostgreSQL                    |
+| `application`  | `esign-local-application`   | Remix app (production image)  |
+
+Check with `docker compose -f docker/local/compose.yml ps` — you should see those two services running.
+
+The app is configured with **`NEXT_PRIVATE_JOBS_PROVIDER=local`** in Compose so it does not need Redis in this mode. SMTP comes from your root **`.env`** (use a real relay, or use the devtools stack below for Inbucket).
+
+## Optional: mail + Redis (devtools profile)
+
+For Inbucket (catch-all SMTP + mail UI) and Redis (e.g. BullMQ testing), use the merge file and profile:
+
+```sh
+pnpm run docker:local:up:devtools
+```
+
+Equivalent:
+
+```sh
+docker compose -f docker/local/compose.yml -f docker/local/compose.devtools.yml --profile devtools up -d --build
+```
+
+`pnpm run docker:local:down` passes the same files and profile so Inbucket/Redis containers are removed too.
 
 ## Prerequisites
 
-- [Docker Desktop](https://docs.docker.com/desktop/) (or Docker Engine + Compose v2)
+- [Docker Desktop](https://docs.docker.com/desktop/) (or Docker Engine + Compose v2.20+ for `depends_on` `required: false`)
 - A root **`.env`** file (copy from `.env.example` in the repository root if you do not have one yet)
-
-## Start
-
-From the **repository root**:
-
-```sh
-pnpm run docker:local:up
-# or: docker compose -f docker/local/compose.yml up --build
-```
-
-Or use package scripts:
-
-```sh
-pnpm run docker:local:up
-pnpm run docker:local:down
-pnpm run docker:local:logs
-```
 
 ## URLs
 
 | Service    | URL                          |
 | ---------- | ---------------------------- |
 | App        | http://localhost:3000        |
-| Mail (UI)  | http://localhost:9000        |
+| Mail (UI)  | http://localhost:9000        | (only with `devtools` profile) |
 | Postgres   | `localhost:54320` (optional) |
-| Redis      | `localhost:63790` (optional) |
+| Redis      | `localhost:63790` (optional) | (only with `devtools` profile) |
+
+## Scripts (repo root)
+
+```sh
+pnpm run docker:local:up
+pnpm run docker:local:up:devtools
+pnpm run docker:local:down
+pnpm run docker:local:logs
+```
 
 ## Sign in
 
@@ -60,7 +79,7 @@ Ensure your root `.env` uses **`127.0.0.1:54320`** for `NEXT_PRIVATE_DATABASE_UR
 
 ## Email / branding checks
 
-Use **`NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000`** in `.env` so links and image URLs in emails match how you open the app. View messages in Inbucket at port **9000**.
+With the **devtools** profile, set **`NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000`** in `.env` so links in emails match how you open the app. View messages in Inbucket at port **9000**.
 
 ## Development vs full Docker
 

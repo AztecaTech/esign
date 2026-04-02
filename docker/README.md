@@ -11,11 +11,11 @@ Before you begin, ensure that you have the following installed:
 
 ## Local stack from this repository
 
-To build the app image from your checkout and run it with Postgres, Inbucket, and Redis (good for testing signing, email, and branding locally), see **[local/README.md](./local/README.md)** and run `pnpm run docker:local:up` from the repo root.
+To build the app image from your checkout and run **Postgres + the app** as two Compose services by default, see **[local/README.md](./local/README.md)** and run `pnpm run docker:local:up`. For Inbucket + Redis as well, use `pnpm run docker:local:up:devtools`.
 
 ## Production: multiple services (recommended)
 
-Use **[production/compose.yml](./production/compose.yml)** for **PostgreSQL**, **Redis** (BullMQ / `NEXT_PRIVATE_REDIS_URL`), and the **web** app as separate containers. From the repo root:
+Use **[production/compose.yml](./production/compose.yml)** for **PostgreSQL**, **Redis** (BullMQ / `NEXT_PRIVATE_REDIS_URL`), and the **application** (Remix) service as separate containers. From the repo root:
 
 ```bash
 docker compose -f docker/production/compose.yml --env-file .env up -d --build
@@ -89,7 +89,7 @@ NEXT_PRIVATE_SIGNING_PASSPHRASE="<your-certificate-password>"
    echo
 
    # Generate certificate inside container using environment variable
-   docker exec -e CERT_PASS="$CERT_PASS" -it esign-production-web-1 bash -c "
+   docker exec -e CERT_PASS="$CERT_PASS" -it esign-production-application-1 bash -c "
      openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
        -keyout /tmp/private.key \
        -out /tmp/certificate.crt \
@@ -101,7 +101,7 @@ NEXT_PRIVATE_SIGNING_PASSPHRASE="<your-certificate-password>"
    "
 
    # Restart container
-   docker compose -f docker/production/compose.yml restart web
+   docker compose -f docker/production/compose.yml restart application
    ```
 
    **Option B: Use Existing Certificate**
@@ -199,7 +199,7 @@ Check application logs for detailed error information:
 
 ```bash
 # For Docker Compose
-docker compose -f docker/production/compose.yml logs -f web
+docker compose -f docker/production/compose.yml logs -f application
 
 # For standalone container
 docker logs -f <container_name>
