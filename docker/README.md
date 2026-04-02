@@ -15,7 +15,17 @@ To build the app image from your checkout and run it with Postgres, Inbucket, an
 
 ## Single-container image (Postgres + app) for Dokploy / GitHub builds
 
-The same `docker/Dockerfile` exposes a final stage **`all-in-one`**: PostgreSQL runs inside the container (bound to `127.0.0.1` only) and then the Remix app starts. Build from your Git repo (e.g. Dokploy: Dockerfile path `docker/Dockerfile`, **Docker build stage** `all-in-one`, context `.`). Mount a persistent volume on **`/app/data`** so the database survives redeploys. Set **`POSTGRES_PASSWORD`** (use a URL-safe password, e.g. alphanumeric) and your usual `NEXTAUTH_SECRET`, encryption keys, `NEXT_PUBLIC_WEBAPP_URL`, SMTP, and signing cert env vars. You can omit **`NEXT_PRIVATE_DATABASE_URL`**; it defaults to the embedded database. Optional: `POSTGRES_USER`, `POSTGRES_DB`, `PORT`. Local test: `npm run docker:all-in-one:build` then `docker run -p 3000:3000 -v esign-data:/app/data -e POSTGRES_PASSWORD=yoursecret -e NEXTAUTH_SECRET=... esign:all-in-one` (add the rest of your env vars).
+The same `docker/Dockerfile` exposes a final stage **`all-in-one`**: PostgreSQL runs inside the container (bound to `127.0.0.1` only) and then the Remix app starts. Mount a persistent volume on **`/app/data`** so the database survives redeploys. Set **`POSTGRES_PASSWORD`** (URL-safe / alphanumeric) plus `NEXTAUTH_SECRET`, encryption keys, `NEXT_PUBLIC_WEBAPP_URL`, SMTP, and signing cert env vars. Omit **`NEXT_PRIVATE_DATABASE_URL`** for embedded Postgres. Optional: `POSTGRES_USER`, `POSTGRES_DB`, `PORT`. Local test: `npm run docker:all-in-one:build` then `docker run -p 3000:3000 -v esign-data:/app/data -e POSTGRES_PASSWORD=... esign:all-in-one`.
+
+### Dokploy (important)
+
+Use these exact build settings:
+
+- **Dockerfile path:** `docker/Dockerfile` (lowercase `docker`)
+- **Docker context path:** `.` (a single dot = repository root). Do **not** use `Docker` or `docker` as the context unless that folder contains the full build context.
+- **Docker build stage:** `all-in-one`
+
+If deployment fails with `cannot create .../Docker/.env: Directory nonexistent`, Dokploy is using the wrong context (often **`Docker`**). Change **Docker context path** to **`.`** so generated files land in the repo root and the build can see `docker/Dockerfile`, `package.json`, and the rest of the monorepo.
 
 ## Option 1: Production Docker Compose Setup
 
