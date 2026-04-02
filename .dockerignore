@@ -34,3 +34,12 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# shrink context sent to the daemon (not needed inside the image)
+.git
+.github
+.agents
+.cursor
+**/.cursor
+**/playwright-report
+**/test-results

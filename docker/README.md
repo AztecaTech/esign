@@ -27,6 +27,12 @@ Use these exact build settings:
 
 If deployment fails with `cannot create .../Docker/.env: Directory nonexistent`, Dokploy is using the wrong context (often **`Docker`**). Change **Docker context path** to **`.`** so generated files land in the repo root and the build can see `docker/Dockerfile`, `package.json`, and the rest of the monorepo.
 
+### Faster redeploys (Dokploy / CI)
+
+- **Only changed env vars:** use your platform’s **restart / redeploy without rebuild** (same image, new env) if available — no 10+ minute build.
+- **First build or after `package-lock` changes** will stay slow; repeat builds are faster with **BuildKit** and the Dockerfile **`--mount=type=cache`** on `npm ci` (enable Docker BuildKit on the builder if it is off).
+- Optional: **Turbo remote cache** — set `TURBO_TEAM` / `TURBO_TOKEN` build args (see commented lines in `docker/Dockerfile`) to reuse compiled outputs across machines.
+
 ## Option 1: Production Docker Compose Setup
 
 This setup includes a PostgreSQL database and the Documenso application. You will need to provide your own SMTP details via environment variables.

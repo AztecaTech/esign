@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+# BuildKit cache mounts speed up repeat `npm ci` (Dokploy/GitHub Actions need BuildKit enabled).
 ###########################
 #     BASE CONTAINER      #
 ###########################
@@ -72,7 +74,8 @@ COPY --from=builder /app/out/package-lock.json ./package-lock.json
 COPY --from=builder /app/lingui.config.ts ./lingui.config.ts
 COPY --from=builder /app/patches ./patches
 
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+  npm ci
 
 # Then copy all the source code (as it changes more often)
 COPY --from=builder /app/out/full/ .
@@ -102,8 +105,6 @@ ENV NEXT_PRIVATE_TELEMETRY_HOST="$NEXT_PRIVATE_TELEMETRY_HOST"
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs
 
-USER nodejs
-
 WORKDIR /app
 
 COPY --from=builder --chown=nodejs:nodejs /app/out/json/ .
@@ -112,7 +113,12 @@ COPY --from=builder --chown=nodejs:nodejs /app/out/full/packages/tailwind-config
 # Copy the patches across
 COPY --from=builder --chown=nodejs:nodejs /app/patches ./patches
 
-RUN npm ci --only=production
+USER root
+RUN --mount=type=cache,target=/root/.npm \
+  npm ci --only=production \
+  && chown -R nodejs:nodejs /app
+
+USER nodejs
 
 # Automatically leverage output traces to reduce image size
 # https://nodejs.org/docs/advanced-features/output-file-tracing
