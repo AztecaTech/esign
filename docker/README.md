@@ -11,33 +11,44 @@ Before you begin, ensure that you have the following installed:
 
 ## Local stack from this repository
 
-To build the app image from your checkout and run it with Postgres, Inbucket, and Redis (good for testing signing, email, and branding locally), see **[local/README.md](./local/README.md)** and run `npm run docker:local:up` from the repo root.
+To build the app image from your checkout and run it with Postgres, Inbucket, and Redis (good for testing signing, email, and branding locally), see **[local/README.md](./local/README.md)** and run `pnpm run docker:local:up` from the repo root.
 
-## Single-container image (Postgres + app) for Dokploy / GitHub builds
+## Production: multiple services (recommended)
 
-The same `docker/Dockerfile` exposes a final stage **`all-in-one`**: PostgreSQL runs inside the container (bound to `127.0.0.1` only) and then the Remix app starts. Mount a persistent volume on **`/app/data`** so the database survives redeploys. Set **`POSTGRES_PASSWORD`** (URL-safe / alphanumeric) plus `NEXTAUTH_SECRET`, encryption keys, `NEXT_PUBLIC_WEBAPP_URL`, SMTP, and signing cert env vars. Omit **`NEXT_PRIVATE_DATABASE_URL`** for embedded Postgres. Optional: `POSTGRES_USER`, `POSTGRES_DB`, `PORT`. Local test: `npm run docker:all-in-one:build` then `docker run -p 3000:3000 -v esign-data:/app/data -e POSTGRES_PASSWORD=... esign:all-in-one`.
+Use **[production/compose.yml](./production/compose.yml)** for **PostgreSQL**, **Redis** (BullMQ / `NEXT_PRIVATE_REDIS_URL`), and the **web** app as separate containers. From the repo root:
+
+```bash
+docker compose -f docker/production/compose.yml --env-file .env up -d --build
+```
+
+Or: `pnpm run docker:prod:up` (expects `.env` at the repo root). Set `NEXT_PRIVATE_DATABASE_URL` / `NEXT_PRIVATE_DIRECT_DATABASE_URL` to point at the `database` service (e.g. `postgres://…@database:5432/…`). Mount your signing cert: set `SIGNING_CERT_HOST_PATH` to the host path of `cert.p12` (defaults to `/opt/documenso/cert.p12` on the host).
+
+Build only the app image: `pnpm run docker:runner:build`. The default `docker build` target is the **`runner`** stage (app only, no embedded Postgres).
+
+### Faster image builds
+
+- Enable **BuildKit**. The Dockerfile uses **`pnpm`** with **`--mount=type=cache`** for the pnpm store, **Turbo** (`.turbo`), and **Prisma** engines so unchanged layers reuse work across builds.
+- **CI:** GitHub Actions `build_docker` job uses **GHA BuildKit cache** (`cache-from` / `cache-to: type=gha`).
+- **Turbo remote cache:** pass build args `TURBO_TEAM` and `TURBO_TOKEN` when building the image to share compile outputs across machines.
+- **Redeploy without rebuild:** when only env vars change, restart containers with the same image.
+
+## Legacy: single-container image (Postgres + app)
+
+The Dockerfile still includes an **`all-in-one`** stage: PostgreSQL inside the same container as the app. Prefer the production compose stack above. Local test: `pnpm run docker:all-in-one:build` then `docker run -p 3000:3000 -v esign-data:/app/data -e POSTGRES_PASSWORD=… esign:all-in-one`.
 
 ### Dokploy (important)
 
-Use these exact build settings:
+- **Dockerfile path:** `docker/Dockerfile`
+- **Docker context path:** `.` (repository root)
+- **Docker build target:** `runner` (multi-service deploy with a managed or compose Postgres/Redis), or `all-in-one` only if you intentionally want one container.
 
-- **Dockerfile path:** `docker/Dockerfile` (lowercase `docker`)
-- **Docker context path:** `.` (a single dot = repository root). Do **not** use `Docker` or `docker` as the context unless that folder contains the full build context.
-- **Docker build stage:** `all-in-one`
-
-If deployment fails with `cannot create .../Docker/.env: Directory nonexistent`, Dokploy is using the wrong context (often **`Docker`**). Change **Docker context path** to **`.`** so generated files land in the repo root and the build can see `docker/Dockerfile`, `package.json`, and the rest of the monorepo.
-
-### Faster redeploys (Dokploy / CI)
-
-- **Only changed env vars:** use your platform’s **restart / redeploy without rebuild** (same image, new env) if available — no 10+ minute build.
-- **First build or after `package-lock` changes** will stay slow; repeat builds are faster with **BuildKit** and the Dockerfile **`--mount=type=cache`** on `npm ci` (enable Docker BuildKit on the builder if it is off).
-- Optional: **Turbo remote cache** — set `TURBO_TEAM` / `TURBO_TOKEN` build args (see commented lines in `docker/Dockerfile`) to reuse compiled outputs across machines.
+If deployment fails with `cannot create .../Docker/.env: Directory nonexistent`, the context path is wrong — use **`.`** as the build context.
 
 ## Option 1: Production Docker Compose Setup
 
-This setup includes a PostgreSQL database and the Documenso application. You will need to provide your own SMTP details via environment variables.
+This setup includes PostgreSQL, Redis, and the application. Use the compose file in this repo: **[docker/production/compose.yml](./production/compose.yml)**. Provide SMTP and other variables via environment variables (see `.env.example` / your secrets manager).
 
-1. Download the Docker Compose file from the Documenso repository: [compose.yml](https://raw.githubusercontent.com/documenso/documenso/release/docker/production/compose.yml)
+1. Copy or symlink `docker/production/compose.yml` and prepare a `.env` file (repo root is a convenient location when using the commands above).
 2. Navigate to the directory containing the `compose.yml` file.
 3. Create a `.env` file in the same directory and add your SMTP details as well as a few extra environment variables, following the example below:
 
@@ -71,14 +82,14 @@ NEXT_PRIVATE_SIGNING_PASSPHRASE="<your-certificate-password>"
 
    ```bash
    # Start containers
-   docker-compose up -d
+   docker compose -f docker/production/compose.yml --env-file ./.env up -d
 
    # Set certificate password securely (won't appear in command history)
    read -s -p "Enter certificate password: " CERT_PASS
    echo
 
    # Generate certificate inside container using environment variable
-   docker exec -e CERT_PASS="$CERT_PASS" -it documenso-production-documenso-1 bash -c "
+   docker exec -e CERT_PASS="$CERT_PASS" -it esign-production-web-1 bash -c "
      openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
        -keyout /tmp/private.key \
        -out /tmp/certificate.crt \
@@ -90,7 +101,7 @@ NEXT_PRIVATE_SIGNING_PASSPHRASE="<your-certificate-password>"
    "
 
    # Restart container
-   docker-compose restart documenso
+   docker compose -f docker/production/compose.yml restart web
    ```
 
    **Option B: Use Existing Certificate**
@@ -105,7 +116,7 @@ NEXT_PRIVATE_SIGNING_PASSPHRASE="<your-certificate-password>"
 5. Run the following command to start the containers:
 
 ```
-docker-compose --env-file ./.env up -d
+docker compose -f docker/production/compose.yml --env-file ./.env up -d
 ```
 
 This will start the PostgreSQL database and the Documenso application containers.
@@ -188,7 +199,7 @@ Check application logs for detailed error information:
 
 ```bash
 # For Docker Compose
-docker-compose logs -f documenso
+docker compose -f docker/production/compose.yml logs -f web
 
 # For standalone container
 docker logs -f <container_name>

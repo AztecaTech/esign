@@ -17,6 +17,6 @@
     "ts-pattern": "^5.9.0"
   },
   "devDependencies": {
-    "@documenso/tsconfig": "*"
+    "@documenso/tsconfig": "workspace:*"
   }
 }

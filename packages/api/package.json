@@ -15,8 +15,8 @@
     "v1/"
   ],
   "dependencies": {
-    "@documenso/lib": "*",
-    "@documenso/prisma": "*",
+    "@documenso/lib": "workspace:*",
+    "@documenso/prisma": "workspace:*",
     "@ts-rest/core": "^3.52.1",
     "@ts-rest/open-api": "^3.52.1",
     "@ts-rest/serverless": "^3.52.1",

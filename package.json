@@ -1,16 +1,11 @@
 {
   "private": true,
   "name": "@documenso/root",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "version": "2.8.1",
   "scripts": {
-    "postinstall": "patch-package",
     "build": "turbo run build",
-    "dev": "npm run translate:compile && turbo run dev --filter=@documenso/remix",
-    "dev:remix": "npm run translate:compile && turbo run dev --filter=@documenso/remix",
+    "dev": "pnpm run translate:compile && turbo run dev --filter=@documenso/remix",
+    "dev:remix": "pnpm run translate:compile && turbo run dev --filter=@documenso/remix",
     "dev:docs": "turbo run dev --filter=@documenso/docs",
     "dev:openpage-api": "turbo run dev --filter=@documenso/openpage-api",
     "start": "turbo run start --filter=@documenso/remix --filter=@documenso/docs --filter=@documenso/openpage-api",
@@ -20,35 +15,38 @@
     "prepare": "husky && husky install || true",
     "commitlint": "commitlint --edit",
     "clean": "turbo run clean && rimraf node_modules",
-    "d": "npm run dx && npm run translate:compile && npm run dev",
-    "dx": "npm ci && npm run dx:up && npm run prisma:migrate-dev && npm run prisma:seed",
+    "d": "pnpm run dx && pnpm run translate:compile && pnpm run dev",
+    "dx": "pnpm install --frozen-lockfile && pnpm run dx:up && pnpm run prisma:migrate-dev && pnpm run prisma:seed",
     "dx:up": "docker compose -f docker/development/compose.yml up -d",
     "dx:down": "docker compose -f docker/development/compose.yml down",
     "docker:local:up": "docker compose -f docker/local/compose.yml up -d --build",
     "docker:local:down": "docker compose -f docker/local/compose.yml down",
     "docker:local:logs": "docker compose -f docker/local/compose.yml logs -f web",
+    "docker:prod:up": "docker compose -f docker/production/compose.yml --env-file .env up -d --build",
+    "docker:prod:down": "docker compose -f docker/production/compose.yml down",
+    "docker:runner:build": "docker build -f docker/Dockerfile --target runner -t esign:web .",
     "docker:all-in-one:build": "docker build -f docker/Dockerfile --target all-in-one -t esign:all-in-one .",
     "ci": "turbo run build --filter=@documenso/remix && turbo run test:e2e",
-    "prisma:generate": "npm run with:env -- npm run prisma:generate -w @documenso/prisma",
-    "prisma:migrate-dev": "npm run with:env -- npm run prisma:migrate-dev -w @documenso/prisma",
-    "prisma:migrate-deploy": "npm run with:env -- npm run prisma:migrate-deploy -w @documenso/prisma",
-    "prisma:migrate-reset": "npm run with:env -- npm run prisma:migrate-reset -w @documenso/prisma",
-    "prisma:seed": "npm run with:env -- npm run prisma:seed -w @documenso/prisma",
-    "prisma:studio": "npm run with:env -- npm run prisma:studio -w @documenso/prisma",
+    "prisma:generate": "pnpm run with:env -- pnpm --filter @documenso/prisma run prisma:generate",
+    "prisma:migrate-dev": "pnpm run with:env -- pnpm --filter @documenso/prisma run prisma:migrate-dev",
+    "prisma:migrate-deploy": "pnpm run with:env -- pnpm --filter @documenso/prisma run prisma:migrate-deploy",
+    "prisma:migrate-reset": "pnpm run with:env -- pnpm --filter @documenso/prisma run prisma:migrate-reset",
+    "prisma:seed": "pnpm run with:env -- pnpm --filter @documenso/prisma run prisma:seed",
+    "prisma:studio": "pnpm run with:env -- pnpm --filter @documenso/prisma run prisma:studio",
     "with:env": "dotenv -e .env -e .env.local --",
-    "reset:hard": "npm run clean && npm i && npm run prisma:generate",
-    "precommit": "npm install && git add package.json package-lock.json",
-    "trigger:dev": "npm run with:env -- npx trigger-cli dev --handler-path=\"/api/jobs\"",
+    "reset:hard": "pnpm run clean && pnpm install && pnpm run prisma:generate",
+    "precommit": "pnpm install && git add package.json pnpm-lock.yaml",
+    "trigger:dev": "pnpm run with:env -- npx trigger-cli dev --handler-path=\"/api/jobs\"",
     "inngest:dev": "inngest dev -u http://localhost:3000/api/jobs",
-    "make:version": "npm version --workspace @documenso/remix --include-workspace-root --no-git-tag-version -m \"v%s\"",
-    "translate": "npm run translate:extract && npm run translate:compile",
+    "make:version": "pnpm --filter @documenso/remix exec npm version patch --no-git-tag-version -m \"v%s\"",
+    "translate": "pnpm run translate:extract && pnpm run translate:compile",
     "translate:extract": "lingui extract --clean",
     "translate:compile": "lingui compile"
   },
-  "packageManager": "npm@10.7.0",
+  "packageManager": "pnpm@9.15.4",
   "engines": {
-    "npm": ">=10.7.0",
-    "node": ">=22.0.0"
+    "node": ">=22.0.0",
+    "pnpm": ">=9.15.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
@@ -90,7 +88,7 @@
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "3.0.81",
-    "@documenso/prisma": "*",
+    "@documenso/prisma": "workspace:*",
     "@libpdf/core": "^0.3.3",
     "@lingui/conf": "^5.6.0",
     "@lingui/core": "^5.6.0",
@@ -98,11 +96,17 @@
     "ai": "^5.0.104",
     "cron-parser": "^5.5.0",
     "luxon": "^3.7.2",
-    "patch-package": "^8.0.1",
     "posthog-node": "4.18.0",
     "react": "^18",
     "typescript": "5.6.2",
     "zod": "^3.25.76"
+  },
+  "pnpm": {
+    "strictPeerDependencies": false,
+    "nodeLinker": "hoisted",
+    "patchedDependencies": {
+      "@ai-sdk/google-vertex@3.0.81": "patches/@ai-sdk+google-vertex+3.0.81.patch"
+    }
   },
   "overrides": {
     "lodash": "4.17.23",

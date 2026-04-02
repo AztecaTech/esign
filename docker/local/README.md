@@ -12,15 +12,16 @@ Runs **PostgreSQL**, **Inbucket** (catch-all SMTP + mail UI), **Redis**, and the
 From the **repository root**:
 
 ```sh
-docker compose -f docker/local/compose.yml up --build
+pnpm run docker:local:up
+# or: docker compose -f docker/local/compose.yml up --build
 ```
 
-Or use npm scripts:
+Or use package scripts:
 
 ```sh
-npm run docker:local:up
-npm run docker:local:down
-npm run docker:local:logs
+pnpm run docker:local:up
+pnpm run docker:local:down
+pnpm run docker:local:logs
 ```
 
 ## URLs
@@ -37,8 +38,8 @@ npm run docker:local:logs
 The database starts **empty** (migrations only). Either:
 
 1. **Sign up** at `/signup` with a new account, or  
-2. From the repo root (with `npm install` done and `.env` using `127.0.0.1:54320` for the DB URL):  
-   `npm run prisma:seed -w @documenso/prisma`  
+2. From the repo root (with `pnpm install` done and `.env` using `127.0.0.1:54320` for the DB URL):  
+   `pnpm --filter @documenso/prisma run prisma:seed`  
    Then sign in as **`example@documenso.com`** / **`password`** or **`admin@documenso.com`** / **`password`**.
 
 Auth compares the browser `Origin` to `NEXT_PUBLIC_WEBAPP_URL`. This repo treats **`localhost` and `127.0.0.1`** as the same for local use so either URL works.
@@ -52,7 +53,7 @@ The compose file mounts **`apps/remix/example/cert.p12`** into the container for
 The container runs **`prisma migrate deploy`** on start (`docker/start.sh`). To seed sample data from your machine (same DB as the stack):
 
 ```sh
-npm run with:env -- npm run prisma:seed -w @documenso/prisma
+pnpm run with:env -- pnpm --filter @documenso/prisma run prisma:seed
 ```
 
 Ensure your root `.env` uses **`127.0.0.1:54320`** for `NEXT_PRIVATE_DATABASE_URL` when running this from the host.
@@ -63,5 +64,5 @@ Use **`NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000`** in `.env` so links and im
 
 ## Development vs full Docker
 
-- **Hot reload (typical dev):** `npm run dx:up` then `npm run dev` — only infra runs in Docker.
+- **Hot reload (typical dev):** `pnpm run dx:up` then `pnpm run dev` — only infra runs in Docker.
 - **Full app in Docker:** this `docker/local` stack — use when you want to test the production image locally.

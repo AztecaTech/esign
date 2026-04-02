@@ -1,4 +1,7 @@
-name: documenso-production
+# Multi-service production stack: Postgres, Redis (for BullMQ jobs), and the Remix app.
+# From repo root: docker compose -f docker/production/compose.yml --env-file .env up -d --build
+# Build target `runner` only (not all-in-one). Use a managed DB by pointing DB URLs at your provider and removing the `database` service if needed.
+name: esign-production
 
 services:
   database:
@@ -15,10 +18,27 @@ services:
     volumes:
       - database:/var/lib/postgresql/data
 
-  documenso:
-    image: documenso/documenso:latest
+  redis:
+    image: redis:8-alpine
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis:/data
+
+  web:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+      target: runner
+    image: ${WEB_IMAGE:-esign-web:latest}
     depends_on:
       database:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       - PORT=${PORT:-3000}
@@ -28,9 +48,10 @@ services:
       - NEXT_PRIVATE_GOOGLE_CLIENT_ID=${NEXT_PRIVATE_GOOGLE_CLIENT_ID}
       - NEXT_PRIVATE_GOOGLE_CLIENT_SECRET=${NEXT_PRIVATE_GOOGLE_CLIENT_SECRET}
       - NEXT_PUBLIC_WEBAPP_URL=${NEXT_PUBLIC_WEBAPP_URL:?err}
-      - NEXT_PRIVATE_INTERNAL_WEBAPP_URL=${NEXT_PRIVATE_INTERNAL_WEBAPP_URL:-http://localhost:$PORT}
+      - NEXT_PRIVATE_INTERNAL_WEBAPP_URL=${NEXT_PRIVATE_INTERNAL_WEBAPP_URL:-http://web:3000}
       - NEXT_PRIVATE_DATABASE_URL=${NEXT_PRIVATE_DATABASE_URL:?err}
       - NEXT_PRIVATE_DIRECT_DATABASE_URL=${NEXT_PRIVATE_DIRECT_DATABASE_URL:-${NEXT_PRIVATE_DATABASE_URL}}
+      - NEXT_PRIVATE_REDIS_URL=${NEXT_PRIVATE_REDIS_URL:-redis://redis:6379}
       - NEXT_PUBLIC_UPLOAD_TRANSPORT=${NEXT_PUBLIC_UPLOAD_TRANSPORT:-database}
       - NEXT_PRIVATE_UPLOAD_ENDPOINT=${NEXT_PRIVATE_UPLOAD_ENDPOINT}
       - NEXT_PRIVATE_UPLOAD_FORCE_PATH_STYLE=${NEXT_PRIVATE_UPLOAD_FORCE_PATH_STYLE}
@@ -66,7 +87,8 @@ services:
     ports:
       - ${PORT:-3000}:${PORT:-3000}
     volumes:
-      - /opt/documenso/cert.p12:/opt/documenso/cert.p12:ro
+      - ${SIGNING_CERT_HOST_PATH:-/opt/documenso/cert.p12}:/opt/documenso/cert.p12:ro
 
 volumes:
   database:
+  redis:

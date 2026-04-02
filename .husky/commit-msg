@@ -1,1 +1,1 @@
-npm run commitlint -- $1
+node node_modules/@commitlint/cli/cli.js --edit "$1"
