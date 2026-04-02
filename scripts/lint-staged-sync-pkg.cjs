@@ -1,7 +1,5 @@
 /**
  * When package.json files are staged: refresh lockfile and re-stage it.
- * Uses Corepack next to the same Node that runs this script (GitHub Desktop
- * often omits pnpm/corepack from PATH).
  */
 const { spawnSync } = require('child_process');
 const fs = require('fs');
@@ -16,64 +14,28 @@ const env = {
     .join(path.delimiter),
 };
 
-function corepackCandidates() {
-  const nodeDir = path.dirname(process.execPath);
-  if (process.platform === 'win32') {
-    return [path.join(nodeDir, 'corepack.cmd'), path.join(nodeDir, 'corepack')];
-  }
-  return [path.join(nodeDir, 'corepack')];
-}
-
-function runPnpmInstall() {
-  for (const corepackExe of corepackCandidates()) {
-    if (!fs.existsSync(corepackExe)) {
-      continue;
-    }
-    // shell:false: on Windows, spawn can run .cmd directly; shell:true breaks paths with spaces (e.g. Program Files).
-    const r = spawnSync(corepackExe, ['pnpm', 'install'], {
-      cwd: root,
-      stdio: 'inherit',
-      env,
-      shell: false,
-    });
-    if (r.error) {
-      continue;
-    }
-    return r.status ?? 0;
-  }
-
-  const shell = process.platform === 'win32';
-  const fromPath = spawnSync('corepack', ['pnpm', 'install'], {
+function runNpmInstall() {
+  const npm = spawnSync('npm', ['install'], {
     cwd: root,
     stdio: 'inherit',
     env,
-    shell,
+    shell: process.platform === 'win32',
   });
-  if (!fromPath.error && fromPath.status !== null) {
-    return fromPath.status;
+  if (!npm.error && npm.status !== null) {
+    return npm.status;
   }
 
-  const pnpm = spawnSync('pnpm', ['install'], {
-    cwd: root,
-    stdio: 'inherit',
-    env,
-    shell,
-  });
-  if (!pnpm.error && pnpm.status !== null) {
-    return pnpm.status;
-  }
-
-  console.error('Could not run pnpm install. Install Node 18+ and run: corepack enable');
+  console.error('Could not run npm install. Install Node 18+ and ensure npm is on PATH.');
   console.error('Node binary:', process.execPath);
   return 1;
 }
 
-const code = runPnpmInstall();
+const code = runNpmInstall();
 if (code !== 0) {
   process.exit(code);
 }
 
-const git = spawnSync('git', ['add', 'package.json', 'pnpm-lock.yaml'], {
+const git = spawnSync('git', ['add', 'package.json', 'package-lock.json'], {
   cwd: root,
   stdio: 'inherit',
   env: process.env,

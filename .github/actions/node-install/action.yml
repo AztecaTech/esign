@@ -1,4 +1,4 @@
-name: 'Setup node, pnpm, and cache'
+name: 'Setup node, npm, and cache'
 inputs:
   node_version:
     required: false
@@ -7,21 +7,16 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Set up pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 9
-
     - name: Set up Node ${{ inputs.node_version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node_version }}
-        cache: 'pnpm'
+        cache: 'npm'
 
     - name: Install dependencies
       shell: bash
       run: |
-        pnpm install --frozen-lockfile
-        pnpm run prisma:generate
+        npm ci
+        npm run prisma:generate
       env:
         HUSKY: '0'

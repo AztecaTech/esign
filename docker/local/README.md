@@ -2,7 +2,7 @@
 
 ## Default: two services
 
-`pnpm run docker:local:up` starts only:
+`npm run docker:local:up` starts only:
 
 | Service        | Container name              | Role                          |
 | -------------- | --------------------------- | ----------------------------- |
@@ -18,7 +18,7 @@ The app is configured with **`NEXT_PRIVATE_JOBS_PROVIDER=local`** in Compose so 
 For Inbucket (catch-all SMTP + mail UI) and Redis (e.g. BullMQ testing), use the merge file and profile:
 
 ```sh
-pnpm run docker:local:up:devtools
+npm run docker:local:up:devtools
 ```
 
 Equivalent:
@@ -27,7 +27,7 @@ Equivalent:
 docker compose -f docker/local/compose.yml -f docker/local/compose.devtools.yml --profile devtools up -d --build
 ```
 
-`pnpm run docker:local:down` passes the same files and profile so Inbucket/Redis containers are removed too.
+`npm run docker:local:down` passes the same files and profile so Inbucket/Redis containers are removed too.
 
 ## Prerequisites
 
@@ -46,10 +46,10 @@ docker compose -f docker/local/compose.yml -f docker/local/compose.devtools.yml 
 ## Scripts (repo root)
 
 ```sh
-pnpm run docker:local:up
-pnpm run docker:local:up:devtools
-pnpm run docker:local:down
-pnpm run docker:local:logs
+npm run docker:local:up
+npm run docker:local:up:devtools
+npm run docker:local:down
+npm run docker:local:logs
 ```
 
 ## Sign in
@@ -57,8 +57,8 @@ pnpm run docker:local:logs
 The database starts **empty** (migrations only). Either:
 
 1. **Sign up** at `/signup` with a new account, or  
-2. From the repo root (with `pnpm install` done and `.env` using `127.0.0.1:54320` for the DB URL):  
-   `pnpm --filter @documenso/prisma run prisma:seed`  
+2. From the repo root (with `npm install` done and `.env` using `127.0.0.1:54320` for the DB URL):  
+   `npm run prisma:seed -w @documenso/prisma`  
    Then sign in as **`example@documenso.com`** / **`password`** or **`admin@documenso.com`** / **`password`**.
 
 Auth compares the browser `Origin` to `NEXT_PUBLIC_WEBAPP_URL`. This repo treats **`localhost` and `127.0.0.1`** as the same for local use so either URL works.
@@ -72,7 +72,7 @@ The compose file mounts **`apps/remix/example/cert.p12`** into the container for
 The container runs **`prisma migrate deploy`** on start (`docker/start.sh`). To seed sample data from your machine (same DB as the stack):
 
 ```sh
-pnpm run with:env -- pnpm --filter @documenso/prisma run prisma:seed
+npm run with:env -- npm run prisma:seed -w @documenso/prisma
 ```
 
 Ensure your root `.env` uses **`127.0.0.1:54320`** for `NEXT_PRIVATE_DATABASE_URL` when running this from the host.
@@ -83,5 +83,5 @@ With the **devtools** profile, set **`NEXT_PUBLIC_WEBAPP_URL=http://localhost:30
 
 ## Development vs full Docker
 
-- **Hot reload (typical dev):** `pnpm run dx:up` then `pnpm run dev` — only infra runs in Docker.
+- **Hot reload (typical dev):** `npm run dx:up` then `npm run dev` — only infra runs in Docker.
 - **Full app in Docker:** this `docker/local` stack — use when you want to test the production image locally.

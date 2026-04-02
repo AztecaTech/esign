@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Multi-stage: pnpm + BuildKit cache mounts (store, Turbo, Prisma engines) for faster rebuilds.
+# Multi-stage: npm + BuildKit cache mounts (npm cache, Turbo, Prisma engines) for faster rebuilds.
 # Production: use docker/production/compose.yml (Postgres + Redis + application); do not use all-in-one for new deploys.
 ###########################
 #     BASE CONTAINER      #
@@ -8,9 +8,6 @@ FROM node:22-alpine3.22 AS base
 
 RUN apk add --no-cache openssl
 RUN apk add --no-cache font-freefont
-
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 ###########################
 #    BUILDER CONTAINER    #
@@ -57,29 +54,22 @@ ARG TURBO_TOKEN
 ENV TURBO_TEAM=$TURBO_TEAM
 ENV TURBO_TOKEN=$TURBO_TOKEN
 
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-
 COPY .gitignore .gitignore
 COPY --from=builder /app/out/json/ .
-COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=builder /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=builder /app/out/package-lock.json ./package-lock.json
 
 COPY --from=builder /app/lingui.config.ts ./lingui.config.ts
-COPY --from=builder /app/patches ./patches
 COPY --from=builder /app/.npmrc ./.npmrc
 
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-  pnpm config set store-dir /pnpm/store && \
-  pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=npm,target=/root/.npm \
+  npm ci
 
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
 
-RUN --mount=type=cache,id=turbo,target=/app/.turbo \
-  --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-  pnpm config set store-dir /pnpm/store && \
-  pnpm exec turbo run build --filter=@documenso/remix...
+RUN --mount=type=cache,target=/app/.turbo \
+  --mount=type=cache,id=npm,target=/root/.npm \
+  npx turbo run build --filter=@documenso/remix...
 
 ###########################
 #     RUNNER CONTAINER    #
@@ -100,20 +90,14 @@ RUN adduser --system --uid 1001 nodejs
 
 WORKDIR /app
 
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-
 COPY --from=builder --chown=nodejs:nodejs /app/out/json/ .
-COPY --from=builder --chown=nodejs:nodejs /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=builder --chown=nodejs:nodejs /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=builder --chown=nodejs:nodejs /app/patches ./patches
+COPY --from=builder --chown=nodejs:nodejs /app/out/package-lock.json ./package-lock.json
 COPY --from=builder --chown=nodejs:nodejs /app/.npmrc ./.npmrc
 COPY --from=builder --chown=nodejs:nodejs /app/out/full/packages/tailwind-config ./packages/tailwind-config
 
 USER root
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-  pnpm config set store-dir /pnpm/store && \
-  pnpm install --frozen-lockfile --prod && \
+RUN --mount=type=cache,id=npm,target=/root/.npm \
+  npm ci --omit=dev && \
   chown -R nodejs:nodejs /app
 
 USER nodejs

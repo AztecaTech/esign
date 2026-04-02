@@ -1,5 +1,5 @@
 # Shell scripts run in Linux Docker; CRLF breaks shebang and control flow on Alpine.
-# pnpm patchedDependencies apply with patch(1); CRLF breaks application on Windows.
+# patch-package / patches apply with patch(1); CRLF breaks application on Windows.
 patches/** text eol=lf
 *.sh text eol=lf
 docker/start.sh text eol=lf

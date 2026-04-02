@@ -10,10 +10,10 @@ runs:
         path: |
           ~/.cache/ms-playwright
           ${{ github.workspace }}/node_modules/playwright
-        key: playwright-${{ hashFiles('pnpm-lock.yaml') }}
+        key: playwright-${{ hashFiles('package-lock.json') }}
         restore-keys: playwright-
 
     - name: Install playwright
       if: steps.cache-playwright.outputs.cache-hit != 'true'
-      run: pnpm exec playwright install --with-deps
+      run: npx playwright install --with-deps
       shell: bash

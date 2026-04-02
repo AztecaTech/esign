@@ -11,7 +11,7 @@ Before you begin, ensure that you have the following installed:
 
 ## Local stack from this repository
 
-To build the app image from your checkout and run **Postgres + the app** as two Compose services by default, see **[local/README.md](./local/README.md)** and run `pnpm run docker:local:up`. For Inbucket + Redis as well, use `pnpm run docker:local:up:devtools`.
+To build the app image from your checkout and run **Postgres + the app** as two Compose services by default, see **[local/README.md](./local/README.md)** and run `npm run docker:local:up`. For Inbucket + Redis as well, use `npm run docker:local:up:devtools`.
 
 ## Production: multiple services (recommended)
 
@@ -21,20 +21,20 @@ Use **[production/compose.yml](./production/compose.yml)** for **PostgreSQL**, *
 docker compose -f docker/production/compose.yml --env-file .env up -d --build
 ```
 
-Or: `pnpm run docker:prod:up` (expects `.env` at the repo root). Set `NEXT_PRIVATE_DATABASE_URL` / `NEXT_PRIVATE_DIRECT_DATABASE_URL` to point at the `database` service (e.g. `postgres://…@database:5432/…`). Mount your signing cert: set `SIGNING_CERT_HOST_PATH` to the host path of `cert.p12` (defaults to `/opt/documenso/cert.p12` on the host).
+Or: `npm run docker:prod:up` (expects `.env` at the repo root). Set `NEXT_PRIVATE_DATABASE_URL` / `NEXT_PRIVATE_DIRECT_DATABASE_URL` to point at the `database` service (e.g. `postgres://…@database:5432/…`). Mount your signing cert: set `SIGNING_CERT_HOST_PATH` to the host path of `cert.p12` (defaults to `/opt/documenso/cert.p12` on the host).
 
-Build only the app image: `pnpm run docker:runner:build`. The default `docker build` target is the **`runner`** stage (app only, no embedded Postgres).
+Build only the app image: `npm run docker:runner:build`. The default `docker build` target is the **`runner`** stage (app only, no embedded Postgres).
 
 ### Faster image builds
 
-- Enable **BuildKit**. The Dockerfile uses **`pnpm`** with **`--mount=type=cache`** for the pnpm store, **Turbo** (`.turbo`), and **Prisma** engines so unchanged layers reuse work across builds.
+- Enable **BuildKit**. The Dockerfile uses **`npm ci`** with **`--mount=type=cache`** for the npm cache, **Turbo** (`.turbo`), and **Prisma** engines so unchanged layers reuse work across builds.
 - **CI:** GitHub Actions `build_docker` job uses **GHA BuildKit cache** (`cache-from` / `cache-to: type=gha`).
 - **Turbo remote cache:** pass build args `TURBO_TEAM` and `TURBO_TOKEN` when building the image to share compile outputs across machines.
 - **Redeploy without rebuild:** when only env vars change, restart containers with the same image.
 
 ## Legacy: single-container image (Postgres + app)
 
-The Dockerfile still includes an **`all-in-one`** stage: PostgreSQL inside the same container as the app. Prefer the production compose stack above. Local test: `pnpm run docker:all-in-one:build` then `docker run -p 3000:3000 -v esign-data:/app/data -e POSTGRES_PASSWORD=… esign:all-in-one`.
+The Dockerfile still includes an **`all-in-one`** stage: PostgreSQL inside the same container as the app. Prefer the production compose stack above. Local test: `npm run docker:all-in-one:build` then `docker run -p 3000:3000 -v esign-data:/app/data -e POSTGRES_PASSWORD=… esign:all-in-one`.
 
 ### Dokploy (important)
 

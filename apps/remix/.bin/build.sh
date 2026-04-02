@@ -18,13 +18,13 @@ cd "$WEB_APP_DIR"
 start_time=$(date +%s)
 
 echo "[Build]: Extracting and compiling translations"
-pnpm --dir ../../ run translate
+npm --prefix ../../ run translate
 
 echo "[Build]: Building app"
-pnpm run build:app
+npm run build:app
 
 echo "[Build]: Building server"
-pnpm run build:server
+npm run build:server
 
 # Copy over the entry point for the server.
 cp server/main.js build/server/main.js

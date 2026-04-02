@@ -1,5 +1,5 @@
 # Merge when using profile `devtools` (Inbucket + Redis). Wired SMTP + Redis hostnames for the app container.
-#   pnpm run docker:local:up:devtools
+#   npm run docker:local:up:devtools
 services:
   application:
     environment:

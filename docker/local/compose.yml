@@ -1,6 +1,6 @@
 # Default: 2 services — database + application (same split as production: data vs app).
 # Optional mail + Redis: docker compose -f docker/local/compose.yml -f docker/local/compose.devtools.yml --profile devtools up -d --build
-# Or: pnpm run docker:local:up:devtools
+# Or: npm run docker:local:up:devtools
 name: esign-local
 
 services:

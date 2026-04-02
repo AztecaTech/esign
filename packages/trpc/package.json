@@ -10,8 +10,8 @@
     "clean": "rimraf node_modules"
   },
   "dependencies": {
-    "@documenso/lib": "workspace:*",
-    "@documenso/prisma": "workspace:*",
+    "@documenso/lib": "*",
+    "@documenso/prisma": "*",
     "@simplewebauthn/server": "^13.2.2",
     "@tanstack/react-query": "5.90.10",
     "@trpc/client": "11.8.1",

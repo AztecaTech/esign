@@ -46,7 +46,7 @@ runGit(['add', 'apps/remix/public']);
 
 const lintStaged = path.join(root, 'node_modules', 'lint-staged', 'bin', 'lint-staged.js');
 if (!fs.existsSync(lintStaged)) {
-  console.error('lint-staged not found. Run pnpm install.');
+  console.error('lint-staged not found. Run npm install.');
   process.exit(1);
 }
 

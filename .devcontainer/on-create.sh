@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 # Install dependencies
-pnpm install
+npm install
 
 # Copy the env file
 cp .env.example .env
 
 # Run the dev setup
-pnpm run dx
+npm run dx
