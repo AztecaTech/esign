@@ -109,8 +109,13 @@ COPY --from=installer --chown=nodejs:nodejs /app/apps/remix/public ./apps/remix/
 COPY --from=installer --chown=nodejs:nodejs /app/packages/prisma/schema.prisma ./packages/prisma/schema.prisma
 COPY --from=installer --chown=nodejs:nodejs /app/packages/prisma/migrations ./packages/prisma/migrations
 
-RUN --mount=type=cache,id=prisma-engines,target=/home/nodejs/.cache/prisma \
-  npx prisma generate --schema ./packages/prisma/schema.prisma
+# Prisma must run as root when using a cache mount: engines in the cache are not utime-writable by `nodejs` (EPERM).
+USER root
+RUN --mount=type=cache,id=prisma-engines,target=/root/.cache/prisma \
+  npx prisma generate --schema ./packages/prisma/schema.prisma && \
+  chown -R nodejs:nodejs /app/node_modules
+
+USER nodejs
 
 COPY --chown=nodejs:nodejs ./docker/start.sh /app/apps/remix/start.sh
 
