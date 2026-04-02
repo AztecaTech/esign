@@ -69,6 +69,7 @@ COPY turbo.json turbo.json
 
 RUN --mount=type=cache,target=/app/.turbo \
   --mount=type=cache,id=npm,target=/root/.npm \
+  --mount=type=cache,id=prisma-engines,target=/root/.cache/prisma \
   npx turbo run build --filter=@documenso/remix...
 
 ###########################

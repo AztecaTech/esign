@@ -27,9 +27,11 @@ Build only the app image: `npm run docker:runner:build`. The default `docker bui
 
 ### Faster image builds
 
-- Enable **BuildKit**. The Dockerfile uses **`npm ci`** with **`--mount=type=cache`** for the npm cache, **Turbo** (`.turbo`), and **Prisma** engines so unchanged layers reuse work across builds.
-- **CI:** GitHub Actions `build_docker` job uses **GHA BuildKit cache** (`cache-from` / `cache-to: type=gha`).
-- **Turbo remote cache:** pass build args `TURBO_TEAM` and `TURBO_TOKEN` when building the image to share compile outputs across machines.
+- Enable **BuildKit** (default on current Docker Desktop / Engine). The Dockerfile uses **`RUN --mount=type=cache`** for the **npm** store, **Turbo** (`.turbo`), and **Prisma** engine downloads so repeated builds reuse work inside each builder.
+- **GitHub Actions CI** (`build_docker` in `.github/workflows/ci.yml`): **Buildx** + **`cache-from` / `cache-to: type=gha`** with a **branch/ref scope** plus a read from the **default branch** scope so pull requests still hit warm layers from `main`.
+- **Publish workflow** (`.github/workflows/publish.yml`): same **GHA** cache **per platform** (`amd64` / `arm64`) and a **registry cache** image at `ghcr.io/<repo>:buildcache-<platform>` so release builds stay warm across workflow runs (requires GHCR login as already configured there).
+- **Turbo remote cache (optional, large win for compile steps):** add repo secrets **`TURBO_TEAM`** and **`TURBO_TOKEN`**, then pass them as Docker **`build-arg`**s (CI and publish already wire them through when the secrets exist). See [Turbo remote caching](https://turbo.build/repo/docs/core-concepts/remote-caching).
+- **Self-hosted / Dokploy:** keep **one** persistent builder and reuse it, or use `docker buildx build ... --cache-to type=local,dest=... --cache-from type=local,src=...` on a host directory you mount between deploys.
 - **Redeploy without rebuild:** when only env vars change, restart containers with the same image.
 
 ## Legacy: single-container image (Postgres + app)

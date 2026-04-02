@@ -37,6 +37,10 @@ services:
       context: ../..
       dockerfile: docker/Dockerfile
       target: runner
+      # Optional Turbo remote cache (set in .env or shell when building): faster `turbo run build` inside the image.
+      args:
+        TURBO_TEAM: ${TURBO_TEAM:-}
+        TURBO_TOKEN: ${TURBO_TOKEN:-}
     image: ${WEB_IMAGE:-esign-web:latest}
     depends_on:
       database:

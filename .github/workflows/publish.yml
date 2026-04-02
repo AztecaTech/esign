@@ -13,19 +13,33 @@ on:
 jobs:
   build_and_publish_platform_containers:
     name: Build and publish platform containers
-    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - warp-ubuntu-latest-x64-4x
-          - warp-ubuntu-latest-arm64-4x
-
+        include:
+          - runner: warp-ubuntu-latest-x64-4x
+            platform: amd64
+          - runner: warp-ubuntu-latest-arm64-4x
+            platform: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref }}
           fetch-tags: true
+
+      - name: Resolve image version labels
+        id: meta
+        env:
+          APP_VERSION_INPUT: ${{ inputs.tag || '' }}
+        run: |
+          if [ -z "$APP_VERSION_INPUT" ]; then
+            APP_VERSION="$(git name-rev --tags --name-only "$(git rev-parse HEAD)" | head -n 1 | sed 's/\^0//')"
+          else
+            APP_VERSION="$APP_VERSION_INPUT"
+          fi
+          echo "git_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "app_version=$APP_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -40,40 +54,34 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GH_TOKEN }}
 
-      - name: Build the docker image
-        env:
-          BUILD_PLATFORM: ${{ matrix.os == 'warp-ubuntu-latest-arm64-4x' && 'arm64' || 'amd64' }}
-          NEXT_PRIVATE_TELEMETRY_KEY: ${{ secrets.NEXT_PRIVATE_TELEMETRY_KEY }}
-          NEXT_PRIVATE_TELEMETRY_HOST: ${{ secrets.NEXT_PRIVATE_TELEMETRY_HOST }}
-          APP_VERSION: ${{ inputs.tag || '' }}
-        run: |
-          if [ -z "$APP_VERSION" ]; then
-            APP_VERSION="$(git name-rev --tags --name-only $(git rev-parse HEAD) | head -n 1 | sed 's/\^0//')"
-          fi
-          GIT_SHA="$(git rev-parse HEAD)"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-          docker build \
-            -f ./docker/Dockerfile \
-            --progress=plain \
-            --build-arg NEXT_PRIVATE_TELEMETRY_KEY="${NEXT_PRIVATE_TELEMETRY_KEY:-}" \
-            --build-arg NEXT_PRIVATE_TELEMETRY_HOST="${NEXT_PRIVATE_TELEMETRY_HOST:-}" \
-            -t "documenso/documenso-$BUILD_PLATFORM:latest" \
-            -t "documenso/documenso-$BUILD_PLATFORM:$GIT_SHA" \
-            -t "documenso/documenso-$BUILD_PLATFORM:$APP_VERSION" \
-            -t "ghcr.io/documenso/documenso-$BUILD_PLATFORM:latest" \
-            -t "ghcr.io/documenso/documenso-$BUILD_PLATFORM:$GIT_SHA" \
-            -t "ghcr.io/documenso/documenso-$BUILD_PLATFORM:$APP_VERSION" \
-            .
-
-      - name: Push the docker image to DockerHub
-        run: docker push --all-tags "documenso/documenso-$BUILD_PLATFORM"
-        env:
-          BUILD_PLATFORM: ${{ matrix.os == 'warp-ubuntu-latest-arm64-4x' && 'arm64' || 'amd64' }}
-
-      - name: Push the docker image to GitHub Container Registry
-        run: docker push --all-tags "ghcr.io/documenso/documenso-$BUILD_PLATFORM"
-        env:
-          BUILD_PLATFORM: ${{ matrix.os == 'warp-ubuntu-latest-arm64-4x' && 'arm64' || 'amd64' }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          platforms: linux/${{ matrix.platform }}
+          push: true
+          tags: |
+            documenso/documenso-${{ matrix.platform }}:latest
+            documenso/documenso-${{ matrix.platform }}:${{ steps.meta.outputs.git_sha }}
+            documenso/documenso-${{ matrix.platform }}:${{ steps.meta.outputs.app_version }}
+            ghcr.io/documenso/documenso-${{ matrix.platform }}:latest
+            ghcr.io/documenso/documenso-${{ matrix.platform }}:${{ steps.meta.outputs.git_sha }}
+            ghcr.io/documenso/documenso-${{ matrix.platform }}:${{ steps.meta.outputs.app_version }}
+          build-args: |
+            NEXT_PRIVATE_TELEMETRY_KEY=${{ secrets.NEXT_PRIVATE_TELEMETRY_KEY }}
+            NEXT_PRIVATE_TELEMETRY_HOST=${{ secrets.NEXT_PRIVATE_TELEMETRY_HOST }}
+            TURBO_TEAM=${{ secrets.TURBO_TEAM }}
+            TURBO_TOKEN=${{ secrets.TURBO_TOKEN }}
+          cache-from: |
+            type=gha,scope=publish-${{ matrix.platform }}
+            type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-${{ matrix.platform }}
+          cache-to: |
+            type=gha,mode=max,scope=publish-${{ matrix.platform }}
+            type=registry,ref=ghcr.io/${{ github.repository }}:buildcache-${{ matrix.platform }},mode=max
 
   create_and_publish_manifest:
     name: Create and publish manifest
